@@ -11,6 +11,12 @@
             Bağlantı Durumu : <strong id="status"></strong>
         </div>
     </div>
+    <div class="col-md-8 offset-2">
+        <h4>Names</h4>
+        <ul id="namesList" class="list-group">
+
+        </ul>
+    </div>
 </div>
 
 
@@ -30,14 +36,19 @@
             });
 
             $("#btnSend").click(function () {
-                    connection.invoke("SendName", $("#name").val()).then(() => {
-                    alert("Mesajınız iletildi");
+                connection.invoke("SendName", $("#name").val()).then(() => {
+                    console.log("mesajınız iletildi");
+                    //alert("Mesajınız iletildi");
                 }).catch((err) => {
                     console.log(err);
                 });
             });
 
             connection.on("ReceiveName", (name) => {
+
+                var li = '<li class="item">' + name + '</li>';
+                debugger;
+                $("#namesList").append(li);
                 console.log(name)
             });
         });
