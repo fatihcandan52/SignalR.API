@@ -80,6 +80,14 @@
                 $("#clientCount").html(ClientCount);
             });
 
+            connection.on("ReceiveNames", (names) => {
+                $("#namesList").empty();
+                debugger;
+                names.forEach((item, index) => {
+                    $("#namesList").append('<li class="item">' + item + '</li>');
+                })
+            })
+
             function SetStatus() {
                 $("#status").text(connection.connectionState);
             }
@@ -88,6 +96,8 @@
                 connection.start().then(() => {
                     SetStatus();
                     $("#loading").hide();
+
+                    connection.invoke("GetNames");
                 }).catch((err) => {
                     console.log(err);
                     setTimeout(() => Start(), 2000);
