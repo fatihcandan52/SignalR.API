@@ -5,52 +5,94 @@
 <div class="row">
     <div class="col-md-8 offset-2">
         <input class="form-control" type="text" id="name" />
-        <br/>
+        <br />
         <button id="btnSend" class="btn btn-sm btn-primary">İsim Ekle</button>
         <div class="alert alert-info">
-            Bağlantı Durumu : <strong id="status"></strong>
+            <div class="float-left">
+                Connection State : <strong id="status"></strong><br />
+                Connected Client Count: <strong id="clientCount"></strong>
+            </div>
+            <div class="float-right">
+                <div id="loading" class="spinner-border" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+            <div class="clearfix"></div>
         </div>
     </div>
     <div class="col-md-8 offset-2">
         <h4>Names</h4>
         <ul id="namesList" class="list-group">
-
         </ul>
     </div>
 </div>
-
 
 @section Scripts {
 
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
     <script>
+        //configureLogging(signalR.LogLevel.Information) => Hata Mesajlarını hangi düzeyden itibaren loglanması gerektiği belirtilir. [Trace, Debug, Information, Warning, Error, Critical]
+        //withAutomaticReconnect => connection da sorunolduktan sonra sırasıyla 0, 2, 10 ve 30 saniye sonra 4 kere tekrar connect olmayı dener.
+
         $(document).ready(() => {
-            var connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:44342/MyHub").build();
+            var connection = new signalR.HubConnectionBuilder()
+                .configureLogging(signalR.LogLevel.Information)
+                .withAutomaticReconnect() // saniyeleri manuel verebiliriz [1000, 2000, 3000, 5000]
+                .withUrl("https://localhost:5001/MyHub").build();
 
-            $("#status").text(connection.connectionState);
+            SetStatus();
+            Start();
 
-            connection.start().then(() => {
-                $("#status").text(connection.connectionState);
-            }).catch((err) => {
-                console.log(err);
+            connection.onreconnecting(err => {
+                $("#loading").show();
+                SetStatus();
+                console.log("onreconnection" + err);
+            });
+
+            connection.onreconnected(connectionId => {
+                SetStatus();
+                $("#loading").hide();
+                console.log("onreconnected: " + connectionId);
+            });
+
+            connection.onclose(() => {
+                $("#loading").hide();
+                SetStatus();
+                console.log("onclose");
+                Start();
             });
 
             $("#btnSend").click(function () {
                 connection.invoke("SendName", $("#name").val()).then(() => {
-                    console.log("mesajınız iletildi");
-                    //alert("Mesajınız iletildi");
+                    console.log("Send Messages");
                 }).catch((err) => {
                     console.log(err);
                 });
             });
 
             connection.on("ReceiveName", (name) => {
-
-                var li = '<li class="item">' + name + '</li>';
-                debugger;
-                $("#namesList").append(li);
+                $("#namesList").append('<li class="item">' + name + '</li>');
                 console.log(name)
             });
+
+
+            connection.on("ReceiveClientCount", (ClientCount) => {
+                $("#clientCount").html(ClientCount);
+            });
+
+            function SetStatus() {
+                $("#status").text(connection.connectionState);
+            }
+
+            function Start() {
+                connection.start().then(() => {
+                    SetStatus();
+                    $("#loading").hide();
+                }).catch((err) => {
+                    console.log(err);
+                    setTimeout(() => Start(), 2000);
+                });
+            }
         });
     </script>
 }
